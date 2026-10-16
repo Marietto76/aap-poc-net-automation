@@ -1,0 +1,28 @@
+---
+- name: POC - Simulated IP assignment (no IPAM is contacted)
+  hosts: all
+  gather_facts: false
+  run_once: true
+  vars:
+    poc_target_hostname: poc-sim-server01
+    poc_ip_pool_prefix: "10.99.0"
+  tasks:
+    - name: Refuse to run outside simulation mode
+      ansible.builtin.assert:
+        that: poc_simulated | default(false) | bool
+        fail_msg: "Inventory is not marked as simulated (poc_simulated=true)"
+
+    - name: Validate request
+      ansible.builtin.assert:
+        that:
+          - poc_target_hostname is match('^[a-z0-9][a-z0-9-]{1,62}$')
+          - poc_ip_pool_prefix is match('^10\.99\.[0-9]{1,3}$')
+        fail_msg: "Invalid request: hostname must be lowercase DNS label and pool must be 10.99.x (lab range)"
+
+    - name: Compute a deterministic fake IP
+      ansible.builtin.set_fact:
+        poc_assigned_ip: "{{ poc_ip_pool_prefix }}.{{ (poc_target_hostname | hash('md5') | int(base=16)) % 200 + 10 }}"
+
+    - name: Report simulated assignment
+      ansible.builtin.debug:
+        msg: "SIMULATION ONLY - would assign {{ poc_assigned_ip }} to {{ poc_target_hostname }}; no IPAM change performed"

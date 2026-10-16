@@ -1,0 +1,16 @@
+---
+- name: POC - Simulated connectivity check
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Refuse to run outside simulation mode
+      ansible.builtin.assert:
+        that: poc_simulated | default(false) | bool
+        fail_msg: "Host {{ inventory_hostname }} is not marked as simulated (poc_simulated=true)"
+
+    - name: Local ping (no network device is contacted)
+      ansible.builtin.ping:
+
+    - name: Report simulated reachability
+      ansible.builtin.debug:
+        msg: "SIMULATED: {{ inventory_hostname }} ({{ poc_environment | default('unknown') }}) reachable"

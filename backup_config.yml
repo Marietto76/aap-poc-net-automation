@@ -1,0 +1,33 @@
+---
+- name: POC - Simulated configuration backup
+  hosts: all
+  gather_facts: false
+  vars:
+    poc_backup_dir: /tmp/poc-backups
+  tasks:
+    - name: Refuse to run outside simulation mode
+      ansible.builtin.assert:
+        that: poc_simulated | default(false) | bool
+        fail_msg: "Host {{ inventory_hostname }} is not marked as simulated (poc_simulated=true)"
+
+    - name: Ensure backup directory exists inside the execution environment
+      ansible.builtin.file:
+        path: "{{ poc_backup_dir }}"
+        state: directory
+        mode: "0700"
+
+    - name: Write a fake running-config
+      ansible.builtin.copy:
+        dest: "{{ poc_backup_dir }}/{{ inventory_hostname }}.cfg"
+        mode: "0600"
+        content: |
+          ! SIMULATED CONFIG - NOT FROM A REAL DEVICE
+          hostname {{ inventory_hostname }}
+          ! environment {{ poc_environment | default('unknown') }}
+          interface Loopback0
+           description poc-simulated
+      register: poc_backup
+
+    - name: Report simulated backup
+      ansible.builtin.debug:
+        msg: "SIMULATED backup of {{ inventory_hostname }} -> {{ poc_backup.dest }} (checksum {{ poc_backup.checksum }})"
